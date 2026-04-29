@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { JobDrive, Application, UserProfile } from '../types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -206,6 +207,94 @@ export const AdminView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
                     </TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeTab === 'reports') {
+    const selectedApps = applications.filter(a => a.status === 'selected');
+    
+    return (
+      <div className="space-y-6">
+        <header className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Placement Reports</h1>
+            <p className="text-muted-foreground">Detailed reports on placement activities and success rates.</p>
+          </div>
+          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+            <TrendingUp className="w-4 h-4" /> Export PDF
+          </Button>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Selection Rate</CardDescription>
+              <CardTitle className="text-2xl">
+                {applications.length > 0 
+                  ? ((selectedApps.length / applications.length) * 100).toFixed(1) 
+                  : 0}%
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Shortlisted</CardDescription>
+              <CardTitle className="text-2xl">
+                {applications.filter(a => a.status === 'shortlisted').length}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Average CGPA (Selected)</CardDescription>
+              <CardTitle className="text-2xl">
+                {selectedApps.length > 0 
+                  ? (selectedApps.reduce((acc, curr) => acc + curr.studentCGPA, 0) / selectedApps.length).toFixed(2)
+                  : 'N/A'}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Selected Students List</CardTitle>
+            <CardDescription>All students who have successfully secured placements.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student Name</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Job Title</TableHead>
+                  <TableHead>CGPA</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedApps.length > 0 ? (
+                  selectedApps.map((app) => (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-medium">{app.studentName}</TableCell>
+                      <TableCell>{users.find(u => u.email === app.studentEmail)?.profile?.branch || 'N/A'}</TableCell>
+                      <TableCell>{jobs.find(j => j.id === app.jobId)?.companyName || 'N/A'}</TableCell>
+                      <TableCell>{(app as any).jobTitle || 'N/A'}</TableCell>
+                      <TableCell>{app.studentCGPA}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No placements recorded yet.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>

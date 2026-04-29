@@ -94,6 +94,30 @@ try {
   // Column already exists or other error
 }
 
+// Seed default users if they don't exist
+const seedUsers = async () => {
+  const usersToSeed = [
+    { email: 'admin@gmail.com', password: 'password123', role: 'admin', displayName: 'System Admin' },
+    { email: 'recruiter@gmail.com', password: 'password123', role: 'recruiter', displayName: 'HR Manager', profile: { companyName: 'Tech Corp', designation: 'Leads Recruiter' } },
+    { email: 'student@gmail.com', password: 'password123', role: 'student', displayName: 'John Doe', profile: { cgpa: 8.5, branch: 'CSE', skills: ['React', 'Node.js'] } },
+    { email: 's@gmail.com', password: 'password123', role: 'student', displayName: 'Student User' },
+    { email: 'a@gmail.com', password: 'password123', role: 'admin', displayName: 'Admin User' },
+  ];
+
+  for (const user of usersToSeed) {
+    const existing = db.prepare('SELECT * FROM users WHERE email = ?').get(user.email);
+    if (!existing) {
+      console.log(`Seeding user: ${user.email}`);
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      const uid = Math.random().toString(36).substring(2, 15);
+      const createdAt = new Date().toISOString();
+      db.prepare('INSERT INTO users (uid, email, password, role, displayName, profile, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .run(uid, user.email, hashedPassword, user.role, user.displayName, JSON.stringify(user.profile || {}), createdAt);
+    }
+  }
+};
+seedUsers();
+
 async function startServer() {
   const app = express();
   const PORT = 3000;

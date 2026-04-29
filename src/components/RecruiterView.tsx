@@ -145,8 +145,82 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
 
   const myApplications = allApplications.filter(app => myJobs.some(job => job.id === app.jobId));
 
+  const AVAILABLE_BRANCHES = [
+    { id: 'CSE', label: 'Computer Science' },
+    { id: 'ECE', label: 'Electronics & Comm.' },
+    { id: 'ME', label: 'Mechanical Eng.' },
+    { id: 'CE', label: 'Civil Eng.' },
+    { id: 'EE', label: 'Electrical Eng.' },
+  ];
+
+  const handleBranchToggle = (branchId: string) => {
+    setNewJob(prev => {
+      const current = prev.eligibleBranches;
+      if (current.includes(branchId)) {
+        return { ...prev, eligibleBranches: current.filter(b => b !== branchId) };
+      } else {
+        return { ...prev, eligibleBranches: [...current, branchId] };
+      }
+    });
+  };
+
+  const renderCreateDialog = () => (
+    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create Placement Drive</DialogTitle>
+          <DialogDescription>Fill in the details for the new job opening.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Job Title</Label>
+            <Input placeholder="Software Engineer Intern" value={newJob.title} onChange={(e) => setNewJob({...newJob, title: e.target.value})} />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Input placeholder="Role details..." value={newJob.description} onChange={(e) => setNewJob({...newJob, description: e.target.value})} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Min CGPA</Label>
+              <Input type="number" step="0.1" value={newJob.minCGPA} onChange={(e) => setNewJob({...newJob, minCGPA: Number(e.target.value)})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Application Deadline</Label>
+              <Input type="date" value={newJob.deadline} onChange={(e) => setNewJob({...newJob, deadline: e.target.value})} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Eligible Branches</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {AVAILABLE_BRANCHES.map((branch) => (
+                <div key={branch.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`branch-${branch.id}`}
+                    checked={newJob.eligibleBranches.includes(branch.id)}
+                    onChange={() => handleBranchToggle(branch.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor={`branch-${branch.id}`} className="text-sm cursor-pointer">{branch.id}</Label>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">If none selected, it will be open to all branches.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreateJob}>Create Drive</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  let content = null;
+
   if (activeTab === 'dashboard') {
-    return (
+    content = (
       <div className="space-y-8">
         <header className="flex justify-between items-center">
           <div>
@@ -269,7 +343,7 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
   }
 
   if (activeTab === 'my-jobs') {
-    return (
+    content = (
       <div className="space-y-6">
         <header className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">My Placement Drives</h1>
@@ -319,49 +393,12 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
             </Card>
           ))}
         </div>
-
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Placement Drive</DialogTitle>
-              <DialogDescription>Fill in the details for the new job opening.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Job Title</Label>
-                <Input placeholder="Software Engineer Intern" value={newJob.title} onChange={(e) => setNewJob({...newJob, title: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Input placeholder="Role details..." value={newJob.description} onChange={(e) => setNewJob({...newJob, description: e.target.value})} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Min CGPA</Label>
-                  <Input type="number" step="0.1" value={newJob.minCGPA} onChange={(e) => setNewJob({...newJob, minCGPA: Number(e.target.value)})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Branches (comma separated)</Label>
-                  <Input placeholder="CSE, ECE" onChange={(e) => setNewJob({...newJob, eligibleBranches: e.target.value.split(',').map(s => s.trim())})} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Application Deadline</Label>
-                <Input type="date" value={newJob.deadline} onChange={(e) => setNewJob({...newJob, deadline: e.target.value})} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateJob}>Create Drive</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
 
   if (activeTab === 'applicants') {
-    return (
+    content = (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Applicant Management</h1>
         <Card>
@@ -389,9 +426,18 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
                     <TableCell>{(app as any).jobTitle}</TableCell>
                     <TableCell>{app.studentCGPA}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" className="text-blue-500">
-                        <ExternalLink className="w-4 h-4 mr-1" /> View
-                      </Button>
+                      {app.resumeUrl ? (
+                        <a 
+                          href={app.resumeUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-xs text-primary hover:underline"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" /> View Resume
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No Resume</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={app.status === 'selected' ? 'default' : app.status === 'rejected' ? 'destructive' : 'outline'}>
@@ -416,7 +462,7 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
   }
 
   if (activeTab === 'profile' || isEditingProfile) {
-    return (
+    content = (
       <div className="max-w-2xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold tracking-tight">Company Profile</h1>
@@ -468,5 +514,10 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
     );
   }
 
-  return null;
+  return (
+    <>
+      {content}
+      {renderCreateDialog()}
+    </>
+  );
 };
