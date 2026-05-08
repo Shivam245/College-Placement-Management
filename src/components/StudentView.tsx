@@ -19,6 +19,7 @@ export const StudentView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [profileForm, setProfileForm] = useState({
+    displayName: userProfile?.displayName || '',
     cgpa: userProfile?.profile?.cgpa || 0,
     branch: userProfile?.profile?.branch || '',
     skills: userProfile?.profile?.skills?.join(', ') || '',
@@ -96,6 +97,7 @@ export const StudentView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          displayName: profileForm.displayName,
           profile: {
             cgpa: Number(profileForm.cgpa),
             branch: profileForm.branch,
@@ -223,8 +225,8 @@ export const StudentView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
                   <TableBody>
                     {applications.slice(0, 5).map((app) => (
                       <TableRow key={app.id}>
-                        <TableCell className="font-medium">{(app as any).companyName}</TableCell>
-                        <TableCell>{(app as any).jobTitle}</TableCell>
+                        <TableCell className="font-medium">{app.companyName}</TableCell>
+                        <TableCell>{app.jobTitle}</TableCell>
                         <TableCell>
                           <Badge variant={
                             app.status === 'selected' ? 'default' : 
@@ -297,6 +299,7 @@ export const StudentView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
             <CardFooter>
               <Button variant="outline" className="w-full" onClick={() => {
                 setProfileForm({
+                  displayName: userProfile?.displayName || '',
                   cgpa: userProfile?.profile?.cgpa || 0,
                   branch: userProfile?.profile?.branch || '',
                   skills: userProfile?.profile?.skills?.join(', ') || '',
@@ -397,6 +400,77 @@ export const StudentView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
     );
   }
 
+  if (activeTab === 'applications') {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight">My Applications</h1>
+          <p className="text-muted-foreground">Detailed history and status of all your job drive applications.</p>
+        </header>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Application History</CardTitle>
+            <CardDescription>Track the real-time status of your submissions.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {applications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <p>No applications submitted yet.</p>
+                <Button variant="outline" className="mt-4" onClick={() => fetchData()}>Refresh</Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Job Title</TableHead>
+                    <TableHead>Applied On</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Resume</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {applications.map((app) => (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-semibold">{app.companyName}</TableCell>
+                      <TableCell>{app.jobTitle}</TableCell>
+                      <TableCell>{new Date(app.appliedAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          app.status === 'selected' ? 'default' : 
+                          app.status === 'rejected' ? 'destructive' : 
+                          app.status === 'shortlisted' ? 'secondary' : 'outline'
+                        }>
+                          {app.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {app.resumeUrl ? (
+                          <a 
+                            href={app.resumeUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-xs text-primary hover:underline"
+                          >
+                            <FileText className="w-3 h-3 mr-1" /> View PDF
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No Resume</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (activeTab === 'profile' || isEditingProfile) {
     return (
       <div className="max-w-2xl mx-auto space-y-8">
@@ -407,9 +481,18 @@ export const StudentView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Academic Information</CardTitle>
+            <CardTitle>Account & Academic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input 
+                id="fullName" 
+                placeholder="Enter your full name" 
+                value={profileForm.displayName} 
+                onChange={(e) => setProfileForm({...profileForm, displayName: e.target.value})}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cgpa">Current CGPA</Label>

@@ -284,7 +284,7 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
                           <p className="text-xs text-muted-foreground">{app.studentEmail}</p>
                         </div>
                       </TableCell>
-                      <TableCell>{(app as any).jobTitle}</TableCell>
+                      <TableCell>{app.jobTitle}</TableCell>
                       <TableCell>{app.studentCGPA}</TableCell>
                       <TableCell>
                         <Badge variant={app.status === 'selected' ? 'default' : app.status === 'rejected' ? 'destructive' : 'outline'}>
@@ -423,7 +423,7 @@ export const RecruiterView: React.FC<{ activeTab: string }> = ({ activeTab }) =>
                         <p className="text-xs text-muted-foreground">{app.studentEmail}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{(app as any).jobTitle}</TableCell>
+                    <TableCell>{app.jobTitle}</TableCell>
                     <TableCell>{app.studentCGPA}</TableCell>
                     <TableCell>
                       {app.resumeUrl ? (

@@ -303,19 +303,76 @@ async function startServer() {
   });
 
   app.patch('/api/users/me', authenticate, (req: any, res) => {
-    const { profile } = req.body;
-    console.log(`Updating profile for user ${req.user.uid}:`, profile);
+    const { profile, displayName } = req.body;
+    console.log(`Updating user ${req.user.uid}:`, { profile, displayName });
     try {
-      const stmt = db.prepare('UPDATE users SET profile = ? WHERE uid = ?');
-      const result = stmt.run(JSON.stringify(profile), req.user.uid);
+      let result;
+      if (displayName !== undefined && profile !== undefined) {
+        const stmt = db.prepare('UPDATE users SET profile = ?, displayName = ? WHERE uid = ?');
+        result = stmt.run(JSON.stringify(profile), displayName, req.user.uid);
+      } else if (displayName !== undefined) {
+        const stmt = db.prepare('UPDATE users SET displayName = ? WHERE uid = ?');
+        result = stmt.run(displayName, req.user.uid);
+      } else if (profile !== undefined) {
+        const stmt = db.prepare('UPDATE users SET profile = ? WHERE uid = ?');
+        result = stmt.run(JSON.stringify(profile), req.user.uid);
+      } else {
+        return res.status(400).json({ error: 'Nothing to update' });
+      }
+
       if (result.changes === 0) {
-        console.log(`Profile update failed: User ${req.user.uid} not found.`);
+        console.log(`Update failed: User ${req.user.uid} not found.`);
         return res.status(404).json({ error: 'User not found' });
       }
-      console.log(`Profile updated successfully for user ${req.user.uid}`);
+      console.log(`User ${req.user.uid} updated successfully`);
       res.json({ success: true });
     } catch (err: any) {
-      console.error(`Error updating profile for user ${req.user.uid}:`, err);
+      console.error(`Error updating user ${req.user.uid}:`, err);
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Update any user
+  app.patch('/api/admin/users/:uid', authenticate, (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const { uid } = req.params;
+    const { displayName, role, profile, email } = req.body;
+
+    try {
+      const updates: string[] = [];
+      const params: any[] = [];
+
+      if (displayName !== undefined) { updates.push('displayName = ?'); params.push(displayName); }
+      if (role !== undefined) { updates.push('role = ?'); params.push(role); }
+      if (email !== undefined) { updates.push('email = ?'); params.push(email); }
+      if (profile !== undefined) { updates.push('profile = ?'); params.push(JSON.stringify(profile)); }
+
+      if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+      params.push(uid);
+      const stmt = db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE uid = ?`);
+      const result = stmt.run(...params);
+
+      if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Delete user
+  app.delete('/api/admin/users/:uid', authenticate, (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const { uid } = req.params;
+    
+    // Don't allow admins to delete themselves via this endpoint to prevent accidental lockout
+    if (uid === req.user.uid) return res.status(400).json({ error: 'Cannot delete own account' });
+
+    try {
+      const result = db.prepare('DELETE FROM users WHERE uid = ?').run(uid);
+      if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
+      res.json({ success: true });
+    } catch (err: any) {
       res.status(400).json({ error: err.message });
     }
   });

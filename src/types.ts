@@ -32,6 +32,8 @@ export interface JobDrive {
 export interface Application {
   id: string;
   jobId: string;
+  jobTitle: string;
+  companyName: string;
   studentId: string;
   studentName: string;
   studentEmail: string;

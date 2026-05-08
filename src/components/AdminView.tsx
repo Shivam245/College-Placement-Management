@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { JobDrive, Application, UserProfile } from '../types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, Briefcase, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Users, Briefcase, CheckCircle2, TrendingUp, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { toast } from 'sonner';
 
 export const AdminView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
   const [jobs, setJobs] = useState<JobDrive[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState<UserProfile | null>(null);
 
   const fetchData = async () => {
     try {
@@ -25,6 +32,48 @@ export const AdminView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
       if (usersRes.ok) setUsers(await usersRes.json());
     } catch (error) {
       console.error("Error fetching data:", error);
+    }
+  };
+
+  const handleDeleteUser = async (uid: string) => {
+    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/admin/users/${uid}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success("User deleted successfully");
+        fetchData();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to delete user");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editForm) return;
+    try {
+      const res = await fetch(`/api/admin/users/${editForm.uid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: editForm.displayName,
+          role: editForm.role,
+          email: editForm.email,
+          profile: editForm.profile
+        })
+      });
+      if (res.ok) {
+        toast.success("User updated successfully");
+        setEditingUser(null);
+        fetchData();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to update user");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
     }
   };
 
@@ -192,6 +241,7 @@ export const AdminView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Details</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -205,12 +255,128 @@ export const AdminView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
                     <TableCell className="text-sm text-muted-foreground">
                       {u.role === 'student' ? `${u.profile?.branch || 'N/A'} | ${u.profile?.cgpa || 'N/A'}` : u.profile?.companyName || 'N/A'}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => {
+                            setEditingUser(u);
+                            setEditForm({ ...u });
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteUser(u.uid)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        {/* Edit User Dialog */}
+        <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit User Details</DialogTitle>
+              <DialogDescription>Update the account information and role for this user.</DialogDescription>
+            </DialogHeader>
+            {editForm && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Input 
+                    id="edit-name" 
+                    value={editForm.displayName} 
+                    onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email Address</Label>
+                  <Input 
+                    id="edit-email" 
+                    value={editForm.email} 
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select 
+                    value={editForm.role} 
+                    onValueChange={(val: any) => setEditForm({ ...editForm, role: val })}
+                  >
+                    <SelectTrigger id="edit-role">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="recruiter">Recruiter</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="border-t pt-4 mt-4">
+                  <p className="text-sm font-semibold mb-2">Profile Details</p>
+                  {editForm.role === 'recruiter' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-company">Company Name</Label>
+                      <Input 
+                        id="edit-company" 
+                        value={editForm.profile?.companyName || ''} 
+                        onChange={(e) => setEditForm({ 
+                          ...editForm, 
+                          profile: { ...editForm.profile, companyName: e.target.value } 
+                        })} 
+                      />
+                    </div>
+                  )}
+                  {editForm.role === 'student' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-branch">Branch</Label>
+                        <Input 
+                          id="edit-branch" 
+                          value={editForm.profile?.branch || ''} 
+                          onChange={(e) => setEditForm({ 
+                            ...editForm, 
+                            profile: { ...editForm.profile, branch: e.target.value } 
+                          })} 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-cgpa">CGPA</Label>
+                        <Input 
+                          id="edit-cgpa" 
+                          type="number"
+                          step="0.01"
+                          value={editForm.profile?.cgpa || 0} 
+                          onChange={(e) => setEditForm({ 
+                            ...editForm, 
+                            profile: { ...editForm.profile, cgpa: Number(e.target.value) } 
+                          })} 
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+              <Button onClick={handleUpdateUser}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -283,8 +449,8 @@ export const AdminView: React.FC<{ activeTab: string }> = ({ activeTab }) => {
                     <TableRow key={app.id}>
                       <TableCell className="font-medium">{app.studentName}</TableCell>
                       <TableCell>{users.find(u => u.email === app.studentEmail)?.profile?.branch || 'N/A'}</TableCell>
-                      <TableCell>{jobs.find(j => j.id === app.jobId)?.companyName || 'N/A'}</TableCell>
-                      <TableCell>{(app as any).jobTitle || 'N/A'}</TableCell>
+                      <TableCell>{app.companyName || 'N/A'}</TableCell>
+                      <TableCell>{app.jobTitle || 'N/A'}</TableCell>
                       <TableCell>{app.studentCGPA}</TableCell>
                     </TableRow>
                   ))
