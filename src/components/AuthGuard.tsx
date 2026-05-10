@@ -10,8 +10,10 @@ import { LogIn, GraduationCap, Briefcase, ShieldCheck, UserPlus } from 'lucide-r
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 
+import { authService } from '../services/auth';
+
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userProfile, loading, isAuthReady, login } = useAuth();
+  const { user, loading, isAuthReady, login } = useAuth();
   const [selectedRole, setSelectedRole] = useState<UserRole>('student');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -117,19 +119,9 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
               onClick={async () => {
                 setIsRegistering(true);
                 try {
-                  const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/login';
-                  const body = isSignUp 
-                    ? { email, password, role: selectedRole, displayName, profile: selectedRole === 'student' ? { cgpa: 0, branch: '', skills: [] } : { companyName: '' } }
-                    : { email, password };
-                  
-                  const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                  });
-                  
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.error || 'Authentication failed');
+                  const data = isSignUp 
+                    ? await authService.signup({ email, password, role: selectedRole, displayName, profile: selectedRole === 'student' ? { cgpa: 0, branch: '', skills: [] } : { companyName: '' } })
+                    : await authService.login({ email, password });
                   
                   login(data);
                   toast.success(isSignUp ? "Account created successfully!" : "Signed in successfully!");

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile, UserRole } from '../types';
 
+import { authService } from '../services/auth';
+
 interface AuthContextType {
   user: { uid: string; email: string; role: UserRole } | null;
   userProfile: UserProfile | null;
@@ -20,18 +22,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        setUserProfile(data);
-      } else if (res.status === 401) {
-        // Session expired or unauthorized
-        setUserProfile(null);
-      } else {
-        setUserProfile(null);
-      }
+      const data = await authService.getMe();
+      setUserProfile(data);
     } catch (error) {
-      console.error("Error fetching profile:", error);
       setUserProfile(null);
     } finally {
       setLoading(false);
@@ -48,8 +41,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setUserProfile(null);
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUserProfile(null);
+    }
   };
 
   const refreshProfile = async () => {

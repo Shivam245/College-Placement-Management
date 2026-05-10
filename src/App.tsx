@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import { Layout } from './components/Layout';
-import { StudentView } from './components/StudentView';
-import { RecruiterView } from './components/RecruiterView';
-import { AdminView } from './components/AdminView';
+import { StudentPage } from './pages/StudentPage';
+import { RecruiterPage } from './pages/RecruiterPage';
+import { AdminPage } from './pages/AdminPage';
 import { Toaster } from 'sonner';
 
 const AppContent: React.FC = () => {
@@ -15,9 +15,9 @@ const AppContent: React.FC = () => {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {userProfile.role === 'student' && <StudentView activeTab={activeTab} />}
-      {userProfile.role === 'recruiter' && <RecruiterView activeTab={activeTab} />}
-      {userProfile.role === 'admin' && <AdminView activeTab={activeTab} />}
+      {userProfile.role === 'student' && <StudentPage activeTab={activeTab} />}
+      {userProfile.role === 'recruiter' && <RecruiterPage activeTab={activeTab} />}
+      {userProfile.role === 'admin' && <AdminPage activeTab={activeTab} />}
     </Layout>
   );
 };
