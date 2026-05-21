@@ -35,7 +35,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-muted/30 p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 p-4">
         <Card className="w-full max-w-md border-none shadow-2xl">
           <CardHeader className="text-center space-y-2">
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-2">
@@ -153,6 +153,9 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
             </p>
           </CardFooter>
         </Card>
+        <div className="mt-6 text-center text-xs text-muted-foreground/75">
+          <p>Built with ❤️ by Shivam prajapati. © 2026 All rights reserved</p>
+        </div>
       </div>
     );
   }
